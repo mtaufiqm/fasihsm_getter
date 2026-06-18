@@ -287,12 +287,14 @@ async function main(userInfo: UserModel): Promise<void>{
             return headerConfig;
         });
         
+        //comment or uncomment below method
         await FasihSMService.downloadSlsData(persistAxios, {
             groupCode: groupId,
             region1Id: region1Id,
-            region2Id
+            region2Id: region2Id
         });
 
+        //comment or uncomment below method
         await FasihSMService.downloadProgressWilayah(persistAxios);
 
     } catch(err){
