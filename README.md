@@ -59,7 +59,7 @@ Make sure the FortiClient VPN B*S is active and connected before running the app
 
 If You Only Want Download Region Wilayah ID (ALL REGION1_ID, REGION2_ID, REGION3_ID, REGION4_ID, REGION5_ID), please Uncomment below code in ./src/main.ts:
 
-Line 291-295 (./src/main.ts)
+Line 294-298 (./src/main.ts)
 ```code
         await FasihSMService.downloadSlsData(persistAxios, {
             groupCode: groupId,
@@ -69,7 +69,7 @@ Line 291-295 (./src/main.ts)
 ```
 
 If You Only Want Download Progress Wilayah, please ensure uncomment below code in ./src/main.ts:
-Line 298 (./src/main.ts)
+Line 301 (./src/main.ts)
 
 ```code
         await FasihSMService.downloadProgressWilayah(persistAxios);
