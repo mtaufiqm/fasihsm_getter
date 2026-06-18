@@ -56,7 +56,6 @@ Make sure the FortiClient VPN B*S is active and connected before running the app
 
 ### 5. Configure App
 
-If Yoi Want Download REGION SLS ID
 
 If You Only Want Download Region Wilayah ID (ALL REGION1_ID, REGION2_ID, REGION3_ID, REGION4_ID, REGION5_ID), please Uncomment below code in ./src/main.ts:
 
