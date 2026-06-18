@@ -5,6 +5,8 @@ import { RecapSlsModel } from "../model/recap_model";
 import { WorkBook } from "xlsx";
 import xlsx from "xlsx";
 import moment from "moment";
+import fs from "fs/promises";
+
 export class FasihSMService {
 
     static async getChildWilayah(client: AxiosInstance, get: "region3" | "region4" | "region5" | "region6", param: {
@@ -321,6 +323,8 @@ export class FasihSMService {
             }
             let newSheet = xlsx.utils.json_to_sheet(resultRow);
             xlsx.utils.book_append_sheet(workBook, newSheet);
+            //create dir first if not exists
+            let resultDir = await fs.mkdir("./result");
             //write to file
             xlsx.writeFile(workBook,outputLoc);
             console.info(`✅️ Success Download Progress Data to ${outputLoc}`);
@@ -441,6 +445,8 @@ export class FasihSMService {
             }
             let wilayahSheet = xlsx.utils.json_to_sheet(wilayahData);
             xlsx.utils.book_append_sheet(workBook, wilayahSheet, "wilayah");
+            //create dir first if not exists
+            let resultDir = await fs.mkdir("./result");
             //write to file
             xlsx.writeFile(workBook,`./result/wilayah.xlsx`);
             console.info(`Success Download Wilayah SubSLS Data`);
@@ -546,6 +552,8 @@ export class FasihSMService {
             }
             let wilayahSheet = xlsx.utils.json_to_sheet(wilayahData);
             xlsx.utils.book_append_sheet(workBook, wilayahSheet, "wilayah");
+            //create dir first if not exists
+            let resultDir = await fs.mkdir("./result");
             //write to file
             xlsx.writeFile(workBook,`./result/wilayah.xlsx`);
             console.info(`Success Download Wilayah SLS Data`);

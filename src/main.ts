@@ -9,6 +9,7 @@ import { FasihSMService } from "./service/fasihsm_service";
 import { Sheet, WorkBook } from "xlsx";
 import xlsx from "xlsx";
 import moment from "moment";
+import fs from "fs/promises";
 
 configDotenv({
     override: true
@@ -211,8 +212,10 @@ async function downloadRecap(userInfo: UserModel): Promise<void>{
         }
         let newSheet = xlsx.utils.json_to_sheet(excelData);
         xlsx.utils.book_append_sheet(workBook, newSheet);
+        //create dir first if not exists
+        let resultDir = await fs.mkdir("./result");
         //write to file
-        xlsx.writeFile(workBook,`./${moment().format("YYYYMMDD_HHmmss")}_data.xlsx`);
+        xlsx.writeFile(workBook,`./result/${moment().format("YYYYMMDD_HHmmss")}_data.xlsx`);
     } catch(err){
         console.info(`Error Occurred ${err}`);
     } finally {
