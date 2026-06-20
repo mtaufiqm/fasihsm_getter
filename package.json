@@ -19,10 +19,12 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@types/selenium-webdriver": "^4.35.6",
     "axios": "^1.17.0",
     "axios-cookiejar-support": "^7.0.0",
     "cheerio": "^1.2.0",
     "moment": "^2.30.1",
+    "selenium-webdriver": "^4.45.0",
     "tough-cookie": "^6.0.1",
     "xlsx": "^0.18.5"
   }

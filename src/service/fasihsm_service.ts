@@ -259,9 +259,10 @@ export class FasihSMService {
                 "userIdResponsibility": null
                 }; 
             let result = await client.post<RecapSlsModel[]>(url, postJson);
+            console.info(`${JSON.stringify(result.data)}`);
             return result.data;
         } catch(err){
-            console.info(`Error ${err}`);
+            console.info(`Error Report Wilayah ${err}`);
             throw new Error(`${err}`);
         }
     }
@@ -292,33 +293,47 @@ export class FasihSMService {
             }
             let resultRow: {label: string; [key: string]: string | number}[] = [];
             let counter: number = 0;
+            //another version of call, make it async for more speed
+            // let asyncFunctionCall = async (): Promise<boolean> => {
+            //     try {
+            //         return true;
+            //     } catch(errAsyncFunc){
+            //         return false;
+            //     }
+            // }
             for(let wilayahItem of wilayahData){
             //Get Recap Data For Certain SubSLS
                 counter++;
-                console.info(`Progress ${counter} : ${wilayahItem.region5Id}`);
-                try {
-                    let resultRecap = await FasihSMService.getReportWilayah(client, {
-                        region1Id: wilayahItem.region1Id,
-                        region2Id: wilayahItem.region2Id,
-                        region3Id: wilayahItem.region3Id,
-                        region4Id: wilayahItem.region4Id,
-                        region5Id: wilayahItem.region5Id
-                    });
-                    for(let itemResult of resultRecap){
-                        let dataRow: {
-                            label: string;
-                            [key: string]: string | number;
-                        } = {
-                            label: itemResult.label
-                        };
-                        for(let itemColumn of itemResult.values){
-                            dataRow[itemColumn.label] = itemColumn.value;
+                let success: boolean = false;
+                let countTry: number = 1;
+                while((success === false) && (countTry <= 3)){
+                    console.info(`Progress ${counter} - On ${countTry} Try: ${wilayahItem.region5Id}`);
+                    try {
+                        let resultRecap = await FasihSMService.getReportWilayah(client, {
+                            region1Id: wilayahItem.region1Id,
+                            region2Id: wilayahItem.region2Id,
+                            region3Id: wilayahItem.region3Id,
+                            region4Id: wilayahItem.region4Id,
+                            region5Id: wilayahItem.region5Id
+                        });
+                        for(let itemResult of resultRecap){
+                            let dataRow: {
+                                label: string;
+                                [key: string]: string | number;
+                            } = {
+                                label: itemResult.label
+                            };
+                            for(let itemColumn of itemResult.values){
+                                dataRow[itemColumn.label] = itemColumn.value;
+                            }
+                            resultRow.push(dataRow);
                         }
-                        resultRow.push(dataRow);
+                        console.info(`✅️ Success Get Progress\n${wilayahItem.region5Id}`);
+                        success = true;
+                    } catch(err5){
+                        console.info(`Error Get Progress Of ${wilayahItem.region5Id}`);
+                        countTry++;
                     }
-                    console.info(`✅️ Success Get Progress\n${wilayahItem.region5Id}`);
-                } catch(err5){
-                    console.info(`Error Get Progress Of ${wilayahItem.region5Id}`);
                 }
             }
             let newSheet = xlsx.utils.json_to_sheet(resultRow);

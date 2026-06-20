@@ -10,6 +10,7 @@ import { Sheet, WorkBook } from "xlsx";
 import xlsx from "xlsx";
 import moment from "moment";
 import fs from "fs/promises";
+import { loginSelenium } from "./login_selenium";
 
 configDotenv({
     override: true
@@ -19,14 +20,17 @@ async function login(userInfo: UserModel): Promise<AxiosInstance> {
     let client = wrapper(axios.create({
         jar: cookieJar,
         withXSRFToken: true,
-        withCredentials: true
+        withCredentials: true,
     }));
+    //go to baseUrl first;
+    console.info(`⌛ Go to https://fasih-sm.bps.go.id`);
+    let baseUrlResult = await client.get(StaticHelper.baseUrl);
     console.info(`⌛ Go to SSO Page`);
     let result = await client.get(StaticHelper.fasihLoginUrl, {
         headers: {
             "Host": "fasih-sm.bps.go.id",
             "Origin": "https://fasih-sm.bps.go.id",
-            "User-Agent": "PostmanRuntime/7.51.1",
+            "User-Agent": "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
             "Content-Type": "application/x-www-form-urlencoded",
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "accept-language": "en-US,en;q=0.9",
@@ -40,9 +44,15 @@ async function login(userInfo: UserModel): Promise<AxiosInstance> {
             "upgrade-insecure-requests": "1"
         }
     });
+
+    const loginPageUrl =
+    result.request?.res?.responseUrl ??
+    result.request?.responseURL;
+
     let htmlObj = cheerio.load(result.data);
     let action = htmlObj("#kc-form-login").attr("action");
     if(!action){
+        console.info(`Response ${htmlObj.html()}`);
         throw new Error("Invalid HTML! There is no Form Login Found");
     }
     let cookiesString: string = "";
@@ -52,11 +62,13 @@ async function login(userInfo: UserModel): Promise<AxiosInstance> {
         loginSSOForm.append("username", userInfo.username);
         loginSSOForm.append("password", userInfo.password);
         console.info(`⌛ Trying to Login SSO`);
+        console.info(`⌛ Wait 3 Seconds`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.info(`Post Credentials`);
         let postLogin = await client.post(action, loginSSOForm, {
             headers: {
                 "Host": "sso.bps.go.id",
                 "Origin": "https://sso.bps.go.id",
-                "User-Agent": StaticHelper.userAgent,
                 "Content-Type": "application/x-www-form-urlencoded",                
                 'user-agent': 'PostmanRuntime/7.51.1',
                 'postman-token': '3db8037a-ccfa-4e1b-89f1-4c2b9ad31723',
@@ -69,8 +81,13 @@ async function login(userInfo: UserModel): Promise<AxiosInstance> {
                 'sec-fetch-dest': 'empty', 
                 'sec-fetch-mode': 'cors', 
                 'sec-fetch-site': 'same-origin', 
+                "referer": loginPageUrl
             }
         });
+        if((postLogin.data as string).includes("Kami mendeteksi perilaku")){
+            console.info(`Detected as Bot`);
+            throw new Error(`Detected as Bot`);
+        }
         if((postLogin.data as string).includes("Invalid username or password.")){
             console.info(`Failed Login, Invalid Username/Password`);
             throw new Error(`Failed Login, Invalid Username/Password`);
@@ -80,6 +97,24 @@ async function login(userInfo: UserModel): Promise<AxiosInstance> {
         throw new Error(`Failed Login, ${errLogin}`);
     }
     console.info(`✅️ Success Login`);
+    return client;
+}
+
+async function loginWithSelenium(): Promise<AxiosInstance> {
+    let cookies = await loginSelenium();
+    let cookieJar = new CookieJar();
+    cookies.split("; ")
+        .map(cookie =>
+            cookieJar.setCookie(
+                cookie,
+                "https://fasih-sm.bps.go.id"
+            )
+    );
+    let client = wrapper(axios.create({
+        jar: cookieJar,
+        withXSRFToken: true,
+        withCredentials: true
+    }));
     return client;
 }
 
@@ -244,7 +279,7 @@ async function main(userInfo: UserModel): Promise<void>{
         }
 
         //login
-        let persistAxios = await login(userInfo);
+        let persistAxios = await loginWithSelenium();
         //if success login, go to home page first;
         await persistAxios.get(StaticHelper.baseUrl);
         // persistAxios.interceptors.request.clear();
@@ -263,7 +298,6 @@ async function main(userInfo: UserModel): Promise<void>{
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin"
         */
-       let xsrfToken: string = "";
         persistAxios.interceptors.request.use(async (headerConfig) => {
             let cookie: string = await headerConfig.jar?.getCookieString("https://fasih-sm.bps.go.id")??"";
             headerConfig.headers["User-Agent"] = "PostmanRuntime/7.51.1";
@@ -290,16 +324,15 @@ async function main(userInfo: UserModel): Promise<void>{
             return headerConfig;
         });
         
-        //comment or uncomment below method
+        // comment or uncomment below method
         await FasihSMService.downloadSlsData(persistAxios, {
             groupCode: groupId,
             region1Id: region1Id,
             region2Id: region2Id
         });
 
-        //comment or uncomment below method
+        // comment or uncomment below method
         await FasihSMService.downloadProgressWilayah(persistAxios);
-
     } catch(err){
         console.info(`Error Occurred ${err}`);
     } finally {
