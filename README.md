@@ -1,8 +1,8 @@
 # Fasih-SM Getter Setup Guide
 
-## Important Notes
-- due to SSO bot detector, login mechanism switch to use Selenium, for get data still using direct API calls.
-- The project will continue to work unless the underlying APIs are changed or updated.
+## CHANGE LOGS
+Version 1.0.1
+- Due to the SSO bot detector, the login process has been switched to Selenium. Data retrieval will continue to use direct API calls
 
 ## Installation
 
@@ -79,7 +79,7 @@ Line 301 (./src/main.ts)
         await FasihSMService.downloadProgressWilayah(persistAxios);
 ```
 
-### 5. Run the Application
+### 6. Run the Application
 
 Use following commands:
 
@@ -87,11 +87,11 @@ Use following commands:
 npm start
 ```
 
-### 6. Monitor the Process
+### 7. Monitor the Process
 
 Wait for the process to complete. You can monitor the execution progress through the console logs.
 
-### 7. Retrieve the Results
+### 8. Retrieve the Results
 
 The generated output file will be saved in the following directory:
 
@@ -108,9 +108,9 @@ or
 
 
 
-### 8. Done
+### 9. Done
 
-Happy Coding, its so Funny
+Happy Coding, its so fun
 
 ---
 
@@ -118,6 +118,8 @@ Happy Coding, its so Funny
 - 99% Direct API Calls
 - 1% Scraping (used only for SSO purposes)
 
+## Important Notes
+- The project will continue to work unless the underlying APIs are changed or updated.
 
 ---
 
