@@ -1,5 +1,9 @@
 # Fasih-SM Getter Setup Guide
 
+## Important Notes
+- due to SSO bot detector, login mechanism switch to use Selenium, for get data still using direct API calls.
+- The project will continue to work unless the underlying APIs are changed or updated.
+
 ## Installation
 
 ### 1. Clone or Get the Project
@@ -114,10 +118,6 @@ Happy Coding, its so Funny
 - 99% Direct API Calls
 - 1% Scraping (used only for SSO purposes)
 
-
-## Important Notes
-
-- The project will continue to work unless the underlying APIs are changed or updated.
 
 ---
 

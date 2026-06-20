@@ -7,7 +7,7 @@ export async function loginSelenium(): Promise<string> {
 
     try {
         await driver.get("https://fasih-sm.bps.go.id");
-        console.log("Login Manual terlebih dahulu...");
+        console.log("Login Manual terlebih dahulu Guys");
         await driver.wait(async () => {
             const url = await driver.getCurrentUrl();
             return !url.includes("login");
