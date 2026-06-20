@@ -89,3 +89,7 @@ export type DataModel = {
     ]
 };
 
+export type PostDataModel = {
+    
+};
+

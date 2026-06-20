@@ -3,119 +3,48 @@ import * as cheerio from "cheerio";
 import { UserModel } from "./model/user_model";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import axios, { AxiosInstance, AxiosRequestHeaders } from "axios";
+import axios, { Axios, AxiosInstance, AxiosRequestHeaders } from "axios";
 import {configDotenv} from "dotenv";
 import { FasihSMService } from "./service/fasihsm_service";
 import { Sheet, WorkBook } from "xlsx";
 import xlsx from "xlsx";
 import moment from "moment";
 import fs from "fs/promises";
-import { loginSelenium } from "./login_selenium";
+import { LoginService } from "./service/login_service";
 
 configDotenv({
     override: true
 });
-async function login(userInfo: UserModel): Promise<AxiosInstance> {
-    let cookieJar = new CookieJar();
-    let client = wrapper(axios.create({
-        jar: cookieJar,
-        withXSRFToken: true,
-        withCredentials: true,
-    }));
-    //go to baseUrl first;
-    console.info(`⌛ Go to https://fasih-sm.bps.go.id`);
-    let baseUrlResult = await client.get(StaticHelper.baseUrl);
-    console.info(`⌛ Go to SSO Page`);
-    let result = await client.get(StaticHelper.fasihLoginUrl, {
-        headers: {
-            "Host": "fasih-sm.bps.go.id",
-            "Origin": "https://fasih-sm.bps.go.id",
-            "User-Agent": "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9",
-            "sec-ch-ua": "\"Microsoft Edge\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?1",
-            "sec-ch-ua-platform": "\"Android\"",
-            "sec-fetch-dest": "document",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-site": "same-origin",
-            "sec-fetch-user": "?1",
-            "upgrade-insecure-requests": "1"
-        }
-    });
 
-    const loginPageUrl =
-    result.request?.res?.responseUrl ??
-    result.request?.responseURL;
+export let globalAxios: AxiosInstance | null = null;
 
-    let htmlObj = cheerio.load(result.data);
-    let action = htmlObj("#kc-form-login").attr("action");
-    if(!action){
-        console.info(`Response ${htmlObj.html()}`);
-        throw new Error("Invalid HTML! There is no Form Login Found");
-    }
-    let cookiesString: string = "";
-    try {
-        //Continue to Login SSO
-        let loginSSOForm = new URLSearchParams();
-        loginSSOForm.append("username", userInfo.username);
-        loginSSOForm.append("password", userInfo.password);
-        console.info(`⌛ Trying to Login SSO`);
-        console.info(`⌛ Wait 3 Seconds`);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        console.info(`Post Credentials`);
-        let postLogin = await client.post(action, loginSSOForm, {
-            headers: {
-                "Host": "sso.bps.go.id",
-                "Origin": "https://sso.bps.go.id",
-                "Content-Type": "application/x-www-form-urlencoded",                
-                'user-agent': 'PostmanRuntime/7.51.1',
-                'postman-token': '3db8037a-ccfa-4e1b-89f1-4c2b9ad31723',
-                'connection': 'keep-alive',
-                'accept': 'application/json', 
-                'accept-language': 'en-US,en;q=0.9', 
-                'sec-ch-ua': '"Microsoft Edge";v="149", "Chromium";v="149", "Not)A;Brand";v="24"', 
-                'sec-ch-ua-mobile': '?0', 
-                'sec-ch-ua-platform': '"Windows"', 
-                'sec-fetch-dest': 'empty', 
-                'sec-fetch-mode': 'cors', 
-                'sec-fetch-site': 'same-origin', 
-                "referer": loginPageUrl
+export function changeGlobalAxios(newObject: AxiosInstance): void {
+    globalAxios = newObject;
+    globalAxios.interceptors.request.use(async (headerConfig) => {
+        let cookie: string = await headerConfig.jar?.getCookieString("https://fasih-sm.bps.go.id")??"";
+        headerConfig.headers["User-Agent"] = "PostmanRuntime/7.51.1";
+        headerConfig.headers["Host"] = "fasih-sm.bps.go.id";
+        headerConfig.headers["Origin"] = "https://fasih-sm.bps.go.id";
+        headerConfig.headers["accept"] = "application/json";
+        headerConfig.headers["accept-language"] = "en-US,en;q=0.9";
+        headerConfig.headers["content-type"] = "application/json";
+        headerConfig.headers["sec-ch-ua"] = "\"Microsoft Edge\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"";
+        headerConfig.headers["sec-ch-ua-mobile"] = "?0";
+        headerConfig.headers["sec-ch-ua-platform"] = "\"Windows\"";
+        headerConfig.headers["sec-fetch-dest"] = "empty";
+        headerConfig.headers["sec-fetch-mode"] = "cors";
+        headerConfig.headers["sec-fetch-site"] = "same-origin";
+        headerConfig.headers['connection'] = 'keep-alive';
+        if(cookie.includes("XSRF-TOKEN")){
+            let splittedStr: string[] = cookie.split("XSRF-TOKEN=",2);
+            let splittedStr1: string[] | undefined = splittedStr.at(1)?.split(";",2);
+            let stringXXSRF: string | undefined = splittedStr1?.at(0);
+            if(stringXXSRF){
+                headerConfig.headers['x-xsrf-token'] = stringXXSRF.trim();
             }
-        });
-        if((postLogin.data as string).includes("Kami mendeteksi perilaku")){
-            console.info(`Detected as Bot`);
-            throw new Error(`Detected as Bot`);
         }
-        if((postLogin.data as string).includes("Invalid username or password.")){
-            console.info(`Failed Login, Invalid Username/Password`);
-            throw new Error(`Failed Login, Invalid Username/Password`);
-        }
-    } catch(errLogin){
-        console.info(`Failed Login, ${errLogin}`);
-        throw new Error(`Failed Login, ${errLogin}`);
-    }
-    console.info(`✅️ Success Login`);
-    return client;
-}
-
-async function loginWithSelenium(): Promise<AxiosInstance> {
-    let cookies = await loginSelenium();
-    let cookieJar = new CookieJar();
-    cookies.split("; ")
-        .map(cookie =>
-            cookieJar.setCookie(
-                cookie,
-                "https://fasih-sm.bps.go.id"
-            )
-    );
-    let client = wrapper(axios.create({
-        jar: cookieJar,
-        withXSRFToken: true,
-        withCredentials: true
-    }));
-    return client;
+        return headerConfig;
+    });
 }
 
 async function downloadRecap(userInfo: UserModel): Promise<void>{
@@ -130,7 +59,7 @@ async function downloadRecap(userInfo: UserModel): Promise<void>{
         userInfo.password = cleanedPassword;
 
         //login
-        let persistAxios = await login(userInfo);
+        let persistAxios = await LoginService.login(userInfo);
         //if success login, go to home page first;
         await persistAxios.get(StaticHelper.baseUrl);
         // persistAxios.interceptors.request.clear();
@@ -279,26 +208,10 @@ async function main(userInfo: UserModel): Promise<void>{
         }
 
         //login
-        let persistAxios = await loginWithSelenium();
+        globalAxios = await LoginService.loginSelenium(userInfo);
         //if success login, go to home page first;
-        await persistAxios.get(StaticHelper.baseUrl);
-        // persistAxios.interceptors.request.clear();
-
-        /*
-            "User-Agent": StaticHelper.userAgent,
-            "Host": "fasih-sm.bps.go.id",
-            "Origin": "https://fasih-sm.bps.go.id",
-            "accept": "application/json",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "application/json",
-            "sec-ch-ua": "\"Microsoft Edge\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin"
-        */
-        persistAxios.interceptors.request.use(async (headerConfig) => {
+        globalAxios.get(StaticHelper.baseUrl);
+        globalAxios.interceptors.request.use(async (headerConfig) => {
             let cookie: string = await headerConfig.jar?.getCookieString("https://fasih-sm.bps.go.id")??"";
             headerConfig.headers["User-Agent"] = "PostmanRuntime/7.51.1";
             headerConfig.headers["Host"] = "fasih-sm.bps.go.id";
@@ -325,14 +238,14 @@ async function main(userInfo: UserModel): Promise<void>{
         });
         
         // comment or uncomment below method
-        await FasihSMService.downloadSlsData(persistAxios, {
+        await FasihSMService.downloadSlsData(globalAxios, {
             groupCode: groupId,
             region1Id: region1Id,
             region2Id: region2Id
         });
 
         // comment or uncomment below method
-        await FasihSMService.downloadProgressWilayah(persistAxios);
+        await FasihSMService.downloadProgressWilayah(globalAxios);
     } catch(err){
         console.info(`Error Occurred ${err}`);
     } finally {

@@ -6,9 +6,10 @@ import { WorkBook } from "xlsx";
 import xlsx from "xlsx";
 import moment from "moment";
 import fs from "fs/promises";
+import { LoginService } from "./login_service";
+import { changeGlobalAxios, globalAxios } from "../main";
 
 export class FasihSMService {
-
     static async getChildWilayah(client: AxiosInstance, get: "region3" | "region4" | "region5" | "region6", param: {
         region1Id?: string; //prov
         region2Id?: string; //kab
@@ -17,30 +18,51 @@ export class FasihSMService {
         region5Id?: string; //sls
         region6Id?: string; //subsls
     }, groupId: string): Promise<ChildWilayahModel> {
-        try {
-            let strlUrl: string = "";
-            if(get === "region3"){
-                strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level3?groupId=${groupId}&level2Id=${param.region2Id}`
+        let success: boolean = false;
+        let tryCount: number = 0;
+        while(!success){
+            tryCount++;
+            try {
+                let strlUrl: string = "";
+                if(get === "region3"){
+                    strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level3?groupId=${groupId}&level2Id=${param.region2Id}`
+                }
+                if(get === "region4"){
+                    strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level4?groupId=${groupId}&level3Id=${param.region3Id}`
+                }
+                if(get === "region5"){
+                    strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level5?groupId=${groupId}&level4Id=${param.region4Id}`
+                }
+                if(get === "region6"){
+                    strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level6?groupId=${groupId}&level5Id=${param.region5Id}`
+                }
+                let result = await globalAxios!.get<ChildWilayahModel>(strlUrl);
+                //detect if blocked
+                let stringResp = JSON.stringify(result.data);
+                if(stringResp.includes("Kami mendeteksi perilaku") || stringResp.includes("kc-form-login")){
+                    console.info(`Detected as Bot or Auto Logout Occurred`);
+                    console.info(`Try To Login Again`);
+                    changeGlobalAxios(await LoginService.loginSelenium({
+                        username: process.env.USERNAME??"",
+                        password: process.env.PASSWORD??""
+                    }));
+                    continue;
+                }
+                console.info(`✅️ Success Get Child Wilayah`);
+                success = true;
+                return result.data;
+            } catch(err){
+                console.info(`Error Occurred ${err}`);
+                if(tryCount < 3){
+                    console.log(`Try again ${tryCount}`);
+                    continue;
+                }
+                throw new Error(`${err}`);
+            } finally {
+                console.info("Done.");
             }
-            if(get === "region4"){
-                strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level4?groupId=${groupId}&level3Id=${param.region3Id}`
-            }
-            if(get === "region5"){
-                strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level5?groupId=${groupId}&level4Id=${param.region4Id}`
-            }
-            if(get === "region6"){
-                strlUrl = `https://fasih-sm.bps.go.id/region/api/v1/region/level6?groupId=${groupId}&level5Id=${param.region5Id}`
-            }
-            let result = await client.get<ChildWilayahModel>(strlUrl);
-            console.info(`Status ${result.status}}`);
-            console.info(`✅️ Success Get Child Wilayah Model`);
-            return result.data;
-        } catch(err){
-            console.info(`Error Occurred ${err}`);
-            throw new Error(`${err}`);
-        } finally {
-            console.info("Done.");
         }
+        throw new Error(`Unexpected`);
     }
 
     static async getDataValues(client: AxiosInstance, param: {
@@ -208,7 +230,7 @@ export class FasihSMService {
                 "filterTargetType": "TARGET_ONLY"
             }
             };
-            let result = await client.post<DataModel, AxiosResponse<DataModel>>("https://fasih-sm.bps.go.id/analytic/api/v2/assignment/datatable-all-user-survey-periode", postData);
+            let result = await globalAxios!.post<DataModel, AxiosResponse<DataModel>>("https://fasih-sm.bps.go.id/analytic/api/v2/assignment/datatable-all-user-survey-periode", postData);
             console.info(`✅️ Success Get Data Values`);
             return result.data;
         } catch(err) {
@@ -230,6 +252,7 @@ export class FasihSMService {
         region4Id?: string; //desa
         region5Id?: string; //sls
     }): Promise<RecapSlsModel[]>  {
+        let success: boolean = false;
         try {
             let url: string = "https://fasih-sm.bps.go.id/app/api/analytic/api/v2/assignment/report-progress-assignment";
             let postJson = {
@@ -258,8 +281,7 @@ export class FasihSMService {
                 "currentUserId": null,
                 "userIdResponsibility": null
                 }; 
-            let result = await client.post<RecapSlsModel[]>(url, postJson);
-            console.info(`${JSON.stringify(result.data)}`);
+            let result = await globalAxios!.post<RecapSlsModel[]>(url, postJson);
             return result.data;
         } catch(err){
             console.info(`Error Report Wilayah ${err}`);
@@ -309,13 +331,24 @@ export class FasihSMService {
                 while((success === false) && (countTry <= 3)){
                     console.info(`Progress ${counter} - On ${countTry} Try: ${wilayahItem.region5Id}`);
                     try {
-                        let resultRecap = await FasihSMService.getReportWilayah(client, {
+                        let resultRecap = await FasihSMService.getReportWilayah(globalAxios!, {
                             region1Id: wilayahItem.region1Id,
                             region2Id: wilayahItem.region2Id,
                             region3Id: wilayahItem.region3Id,
                             region4Id: wilayahItem.region4Id,
                             region5Id: wilayahItem.region5Id
                         });
+                        //detect if blocked
+                        let stringResp = JSON.stringify(resultRecap);
+                        if(stringResp.includes("Kami mendeteksi perilaku") || stringResp.includes("kc-form-login")){
+                            console.info(`Detected as Bot or Auto Logout Occurred`);
+                            console.info(`Try To Login Again`);
+                            changeGlobalAxios(await LoginService.loginSelenium({
+                                username: process.env.USERNAME??"",
+                                password: process.env.PASSWORD??""
+                            }));
+                            continue;
+                        }
                         for(let itemResult of resultRecap){
                             let dataRow: {
                                 label: string;
@@ -356,7 +389,7 @@ export class FasihSMService {
     }): Promise<void>{
         try {
             console.info(`⌛ Trying Download SUBSLS Data of ${param.region2Id}`);
-            let result = await FasihSMService.getChildWilayah(client, "region3",{
+            let result = await FasihSMService.getChildWilayah(globalAxios!, "region3",{
                 region2Id: param.region2Id
             }, param.groupCode);
             let workBook: WorkBook = xlsx.utils.book_new();
@@ -379,17 +412,17 @@ export class FasihSMService {
             let wilayahData: WilayahData[] = [];
             for(let region3 of result.data){
                 try {
-                    let result4 = await FasihSMService.getChildWilayah(client, "region4",{
+                    let result4 = await FasihSMService.getChildWilayah(globalAxios!, "region4",{
                         region3Id: region3.id
                     }, param.groupCode);
                     for(let region4 of result4.data){
                         try {
-                            let result5 = await FasihSMService.getChildWilayah(client, "region5", {
+                            let result5 = await FasihSMService.getChildWilayah(globalAxios!, "region5", {
                                 region4Id: region4.id
                             }, param.groupCode);
                             for(let region5 of result5.data){
                                 try {
-                                    let result6 = await FasihSMService.getChildWilayah(client, "region6", {
+                                    let result6 = await FasihSMService.getChildWilayah(globalAxios!, "region6", {
                                         region5Id: region5.id
                                     }, param.groupCode);
                                     for(let region6 of result6.data){
@@ -478,7 +511,7 @@ export class FasihSMService {
     }): Promise<void>{
         try {
             console.info(`⌛ Trying Download SLS Data of ${param.region2Id}`);
-            let result = await FasihSMService.getChildWilayah(client, "region3",{
+            let result = await FasihSMService.getChildWilayah(globalAxios!, "region3",{
                 region2Id: param.region2Id
             }, param.groupCode);
             let workBook: WorkBook = xlsx.utils.book_new();
@@ -498,12 +531,12 @@ export class FasihSMService {
             let wilayahData: WilayahData[] = [];
             for(let region3 of result.data){
                 try {
-                    let result4 = await FasihSMService.getChildWilayah(client, "region4",{
+                    let result4 = await FasihSMService.getChildWilayah(globalAxios!, "region4",{
                         region3Id: region3.id
                     }, param.groupCode);
                     for(let region4 of result4.data){
                         try {
-                            let result5 = await FasihSMService.getChildWilayah(client, "region5", {
+                            let result5 = await FasihSMService.getChildWilayah(globalAxios!, "region5", {
                                 region4Id: region4.id
                             }, param.groupCode);
                             for(let region5 of result5.data){
