@@ -276,7 +276,7 @@ export class PuppeteerService {
             //create dir first if not exists
             let resultDir = await fs.mkdir("./result", {recursive: true});
             //write to file
-            xlsx.writeFile(workBook,`./result/wilayah2.xlsx`);
+            xlsx.writeFile(workBook,`./result/wilayah.xlsx`);
             console.info(`Success Download Wilayah SLS Data`);
         } catch(err){
             throw new Error(`${err}`);
