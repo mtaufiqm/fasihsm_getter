@@ -1,13 +1,13 @@
 import { CronJob } from "cron";
 import moment from "moment";
-import { main } from "../main";
+import { PuppeteerService } from "../service/puppeteer_service";
 
 export class TaskScheduler {
     static async runScheduler(): Promise<void> {
         try {
-            let cronJobExecutor = new CronJob("55 */3 * * *", async (): Promise<void> => {
+            let cronJobExecutor = new CronJob("0 */3 * * *", async (): Promise<void> => {
                 try {
-                    await main({
+                    await PuppeteerService.main({
                         username: process.env.USERNAME??"",
                         password: process.env.PASSWORD??""
                     });
