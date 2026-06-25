@@ -371,7 +371,7 @@ export class PuppeteerService {
                             continue;
                         }
                         if(countTry < 15){
-                            const browser = await PuppeteerService.loginPuppeteer(AccountService.listAccount.at(0)!);
+                            const browser = await PuppeteerService.loginPuppeteer(authInfo??AccountService.listAccount.at(0)!);
                             let newPage = await browser.newPage();
                             try {
                                 await newPage.goto("https://fasih-sm.bps.go.id/survey-collection/collect/a0429e96-51a5-477b-a415-485f9c153004", {
