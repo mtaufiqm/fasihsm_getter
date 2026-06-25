@@ -1,5 +1,5 @@
 export class FasihDataService {
-    static async readAll(): Promise<void> {
+    static async getByAssignmentId(): Promise<void> {
         
     }
 }
