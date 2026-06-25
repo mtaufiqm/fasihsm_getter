@@ -285,7 +285,7 @@ export class PuppeteerService {
         }
     }
 
-    static async downloadProgress(authInfo: UserModel, browser: Browser, page: Page, sourceWilayah: string = './result/wilayah.xlsx', outputLoc: string = `./result/${moment().format('YYYYMMDD_HHmmss')}_progress_wilayah.xlsx`): Promise<void> {
+    static async downloadProgress(authInfo: UserModel, sourceWilayah: string = './result/wilayah.xlsx', outputLoc: string = `./result/${moment().format('YYYYMMDD_HHmmss')}_progress_wilayah.xlsx`): Promise<void> {
         try {
             console.info(`⌛ Trying Download Progress Wilayah of From File ${sourceWilayah} to ${outputLoc}`);
             let workBook: WorkBook = xlsx.utils.book_new();
@@ -529,7 +529,7 @@ export class PuppeteerService {
         });
 
         //download progress with puppeteer
-        // await PuppeteerService.downloadProgress(userInfo!, browser, newPage);
+        await PuppeteerService.downloadProgress(userInfo!);
         console.info(`Done`);
     }
 }
