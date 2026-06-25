@@ -1,6 +1,6 @@
 {
   "name": "fasihsm_getter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "App to get data from fasihsm",
   "main": "index.js",
   "scripts": {
