@@ -530,6 +530,6 @@ export class PuppeteerService {
 
         //download progress with puppeteer
         // await PuppeteerService.downloadProgress(userInfo!, browser, newPage);
-        // console.info(`Done`);
+        console.info(`Done`);
     }
 }

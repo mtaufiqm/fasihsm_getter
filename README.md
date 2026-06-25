@@ -1,6 +1,8 @@
 # Fasih-SM Getter Setup Guide
 
 ## CHANGE LOGS
+1.0.3
+- Due to enhanced bot protection (WAF) 💀, the login process has been migrated to Puppeteer to bypass detection mechanisms that check navigator.webdriver and other browser properties wkwk. This version uses puppeteer-extra-plugin-stealth. 
 
 1.0.2
 - Auto Login Based Credentials in .env, and Auto Re-login If Blocked
@@ -67,20 +69,20 @@ Make sure the FortiClient VPN B*S is active and connected before running the app
 
 If You Only Want Download Region Wilayah ID (ALL REGION1_ID, REGION2_ID, REGION3_ID, REGION4_ID, REGION5_ID), please Uncomment below code in ./src/main.ts:
 
-Line 241-245 (./src/main.ts)
+Line 524-529 (./src/service/puppeteer_service.ts)
 ```code
-        await FasihSMService.downloadSlsData(persistAxios, {
+        await PuppeteerService.downloadSlsData(userInfo!, {
             groupCode: groupId,
             region1Id: region1Id,
             region2Id: region2Id
         });
 ```
 
-If You Only Want Download Progress Wilayah, please ensure uncomment below code in ./src/main.ts:
-Line 247 (./src/main.ts)
+If You Only Want Download Progress Wilayah, please ensure uncomment below code in:
+Line 532 (./src/service/puppeteer_service.ts)
 
 ```code
-        await FasihSMService.downloadProgressWilayah(persistAxios);
+        await PuppeteerService.downloadProgress(userInfo!, browser, newPage);
 ```
 
 ### 6. Run the Application
